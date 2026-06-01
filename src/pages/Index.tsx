@@ -3,6 +3,63 @@ import Icon from "@/components/ui/icon";
 
 type Section = "home" | "library" | "controls" | "settings" | "stats" | "about";
 
+const MONO = "'Courier New', Courier, monospace";
+const SANS = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+
+// Android package names для Intent-запуска
+const EMULATORS = [
+  {
+    id: "retroarch",
+    name: "RetroArch",
+    desc: "Универсальный — сотни систем",
+    icon: "Layers",
+    pkg: "com.retroarch",
+    systems: ["NES", "SNES", "PS1", "GBA", "N64", "Saturn"],
+    color: "#4e9af1",
+    installed: true,
+  },
+  {
+    id: "ppsspp",
+    name: "PPSSPP",
+    desc: "PlayStation Portable",
+    icon: "Gamepad2",
+    pkg: "org.ppsspp.ppsspp",
+    systems: ["PSP"],
+    color: "#00aaff",
+    installed: true,
+  },
+  {
+    id: "dolphin",
+    name: "Dolphin",
+    desc: "GameCube / Wii",
+    icon: "Fish",
+    pkg: "org.dolphinemu.dolphinemu",
+    systems: ["GameCube", "Wii"],
+    color: "#5ecfb0",
+    installed: false,
+  },
+  {
+    id: "winlator",
+    name: "Winlator",
+    desc: "Запуск .exe на Android",
+    icon: "Monitor",
+    pkg: "com.winlator",
+    systems: [".EXE", "Win32", "DirectX"],
+    color: "#00bfff",
+    installed: true,
+  },
+  {
+    id: "xenia",
+    name: "Xenia",
+    desc: "Xbox 360 (когда выйдет)",
+    icon: "Tv",
+    pkg: "com.xenia.android",
+    systems: ["Xbox 360", "XBLA"],
+    color: "#52cc52",
+    installed: false,
+  },
+];
+
 const NAV_ITEMS: { id: Section; label: string; icon: string }[] = [
   { id: "home", label: "Главная", icon: "Home" },
   { id: "library", label: "Игры", icon: "Gamepad2" },
@@ -12,20 +69,185 @@ const NAV_ITEMS: { id: Section; label: string; icon: string }[] = [
   { id: "about", label: "О системе", icon: "Info" },
 ];
 
-const QUICK_LAUNCHERS = [
-  { name: "Win32 EXE", desc: "Эмуляция .exe файлов", icon: "Monitor", status: "active", fps: "60–90" },
-  { name: "Xbox 360", desc: "XBLA / Disc образы", icon: "Gamepad2", status: "active", fps: "30–60" },
-  { name: "DOS / Win9x", desc: "Ретро-приложения", icon: "Terminal", status: "beta", fps: "120+" },
-];
+function launchEmulator(pkg: string) {
+  // Android Intent через deep link — открывает установленное приложение
+  window.location.href = `intent://#Intent;package=${pkg};scheme=android-app;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end`;
+}
+
+function FpsCounter({ target }: { target: number }) {
+  const [fps, setFps] = useState(target);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setFps(target - 4 + Math.floor(Math.random() * 9));
+    }, 900);
+    return () => clearInterval(id);
+  }, [target]);
+  return <span style={{ fontFamily: MONO, color: "var(--neon)", fontSize: "2rem", fontWeight: 700 }}>{fps}</span>;
+}
+
+function SectionHome() {
+  const [launching, setLaunching] = useState<string | null>(null);
+
+  function handleLaunch(emu: typeof EMULATORS[0]) {
+    if (!emu.installed) return;
+    setLaunching(emu.id);
+    setTimeout(() => {
+      launchEmulator(emu.pkg);
+      setLaunching(null);
+    }, 600);
+  }
+
+  return (
+    <div className="animate-slide-up space-y-5">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded p-5" style={{ border: "1px solid var(--neon-border)", boxShadow: "0 0 20px rgba(0,255,136,0.1)" }}>
+        <div className="absolute inset-0 scan-line" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="status-dot" />
+            <span style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>EMUCORE LAUNCHER — OFFLINE MODE</span>
+          </div>
+          <h1 style={{ fontFamily: MONO, fontSize: "1.8rem", fontWeight: 700, color: "var(--neon)", marginTop: "10px" }}>
+            EmuCore<span className="cursor-blink" style={{ color: "var(--text-dim)" }}>_</span>
+          </h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", lineHeight: 1.6, fontFamily: SANS }}>
+            Лаунчер эмуляторов для Android.<br />
+            Полностью офлайн — интернет не нужен.
+          </p>
+          <div className="flex gap-2 mt-3 flex-wrap">
+            {["OFFLINE", "KIRIN 710F", "ANDROID 9+", "NO ADS"].map((t) => (
+              <span key={t} className="tag-chip">{t}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Эмуляторы */}
+      <div>
+        <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "10px" }}>// Запуск эмулятора</p>
+        <div className="space-y-2">
+          {EMULATORS.map((emu) => (
+            <div
+              key={emu.id}
+              className="surface-card rounded p-4 flex items-center gap-4"
+              style={{
+                opacity: emu.installed ? 1 : 0.5,
+                transition: "all 0.2s",
+                border: launching === emu.id ? `1px solid ${emu.color}` : "1px solid var(--surface-3)",
+                boxShadow: launching === emu.id ? `0 0 16px ${emu.color}33` : "none",
+              }}
+            >
+              {/* Иконка */}
+              <div className="w-11 h-11 rounded flex items-center justify-center flex-shrink-0" style={{ background: `${emu.color}18`, border: `1px solid ${emu.color}44` }}>
+                <Icon name={emu.icon} size={22} style={{ color: emu.color }} />
+              </div>
+
+              {/* Инфо */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)", fontFamily: SANS }}>{emu.name}</span>
+                  {!emu.installed && (
+                    <span style={{ fontFamily: MONO, fontSize: "9px", padding: "1px 6px", borderRadius: "2px", background: "#ff440020", color: "#ff6644", border: "1px solid #ff444440" }}>
+                      НЕ УСТАНОВЛЕН
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "1px", fontFamily: SANS }}>{emu.desc}</p>
+                <div className="flex gap-1 mt-1.5 flex-wrap">
+                  {emu.systems.map((s) => <span key={s} className="tag-chip">{s}</span>)}
+                </div>
+              </div>
+
+              {/* Кнопка */}
+              <button
+                onClick={() => handleLaunch(emu)}
+                disabled={!emu.installed || launching !== null}
+                style={{
+                  flexShrink: 0,
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  fontFamily: MONO,
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  cursor: emu.installed ? "pointer" : "not-allowed",
+                  transition: "all 0.2s",
+                  background: launching === emu.id ? emu.color : emu.installed ? `${emu.color}20` : "var(--surface-3)",
+                  color: launching === emu.id ? "#000" : emu.installed ? emu.color : "var(--text-dim)",
+                  border: `1px solid ${emu.installed ? `${emu.color}55` : "var(--text-dim)"}`,
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {launching === emu.id ? "..." : emu.installed ? "ЗАПУСК" : "N/A"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Подсказка */}
+      <div className="surface-card rounded p-3 flex items-start gap-3">
+        <Icon name="Info" size={15} style={{ color: "var(--text-secondary)", flexShrink: 0, marginTop: 1 }} />
+        <p style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.5, fontFamily: SANS }}>
+          Кнопка <b style={{ color: "var(--text-primary)" }}>ЗАПУСК</b> открывает эмулятор, установленный на устройстве. Если эмулятор не установлен — зайдите в раздел <b style={{ color: "var(--text-primary)" }}>О системе</b> за инструкцией.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 const LIBRARY_GAMES = [
-  { title: "Halo 3", platform: "XBOX360", size: "6.7 GB", fps: 60, compat: 94, genre: "Шутер" },
-  { title: "GTA IV", platform: "WIN32", size: "16.0 GB", fps: 45, compat: 78, genre: "Экшн" },
-  { title: "Forza Horizon", platform: "XBOX360", size: "8.2 GB", fps: 60, compat: 91, genre: "Гонки" },
-  { title: "Far Cry 3", platform: "WIN32", size: "12.4 GB", fps: 55, compat: 85, genre: "Шутер" },
-  { title: "Red Dead Redemption", platform: "XBOX360", size: "7.1 GB", fps: 30, compat: 72, genre: "Приключения" },
-  { title: "Crysis 2", platform: "WIN32", size: "9.8 GB", fps: 40, compat: 80, genre: "Шутер" },
+  { title: "Halo 3", platform: "XBOX360", emu: "Xenia", size: "6.7 GB", fps: 60, compat: 94, genre: "Шутер" },
+  { title: "GTA IV", platform: "WIN32", emu: "Winlator", size: "16.0 GB", fps: 45, compat: 78, genre: "Экшн" },
+  { title: "God of War", platform: "PSP", emu: "PPSSPP", size: "1.4 GB", fps: 60, compat: 98, genre: "Экшн" },
+  { title: "Forza Horizon", platform: "XBOX360", emu: "Xenia", size: "8.2 GB", fps: 60, compat: 91, genre: "Гонки" },
+  { title: "Far Cry 3", platform: "WIN32", emu: "Winlator", size: "12.4 GB", fps: 55, compat: 85, genre: "Шутер" },
+  { title: "Mario Kart Wii", platform: "WII", emu: "Dolphin", size: "4.4 GB", fps: 60, compat: 96, genre: "Гонки" },
+  { title: "Tekken 6", platform: "PSP", emu: "PPSSPP", size: "0.9 GB", fps: 60, compat: 99, genre: "Файтинг" },
+  { title: "GTA San Andreas", platform: "WIN32", emu: "Winlator", size: "3.6 GB", fps: 70, compat: 92, genre: "Экшн" },
 ];
+
+function SectionLibrary() {
+  const [filter, setFilter] = useState<string>("ALL");
+  const platforms = ["ALL", "WIN32", "PSP", "XBOX360", "WII"];
+  const filtered = filter === "ALL" ? LIBRARY_GAMES : LIBRARY_GAMES.filter((g) => g.platform === filter);
+
+  return (
+    <div className="animate-slide-up space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// Библиотека игр</p>
+        <div className="flex gap-1 flex-wrap">
+          {platforms.map((f) => (
+            <button key={f} onClick={() => setFilter(f)} style={{
+              fontFamily: MONO, fontSize: "9px", padding: "4px 10px", borderRadius: "3px",
+              border: filter === f ? "1px solid var(--neon-border)" : "1px solid var(--surface-3)",
+              background: filter === f ? "var(--neon-dim)" : "transparent",
+              color: filter === f ? "var(--neon)" : "var(--text-secondary)",
+              cursor: "pointer", transition: "all 0.15s",
+            }}>{f}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {filtered.map((game) => (
+          <div key={game.title + game.platform} className="surface-card surface-card-hover rounded p-3 flex items-center gap-3 cursor-pointer">
+            <div className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0" style={{ background: "var(--surface-3)" }}>
+              <Icon name={game.platform === "WIN32" ? "Monitor" : game.platform === "PSP" ? "Gamepad2" : "Tv"} size={18} style={{ color: "var(--text-secondary)" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)", fontFamily: SANS }}>{game.title}</span>
+                <span className="tag-chip">{game.emu}</span>
+              </div>
+              <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "1px", fontFamily: MONO }}>{game.size} · {game.compat}% compat</p>
+            </div>
+            <span className="fps-badge">{game.fps} FPS</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const CONTROL_PROFILES = [
   { name: "Стандартный Xbox", type: "ГЕЙМПАД", keys: 16, active: true },
@@ -34,334 +256,103 @@ const CONTROL_PROFILES = [
   { name: "Мой профиль", type: "КАСТОМ", keys: 18, active: false },
 ];
 
-const SETTINGS_GROUPS = [
-  {
-    group: "Графика",
-    icon: "Layers",
-    items: [
-      { label: "Разрешение рендера", value: "1920×1080", type: "select" },
-      { label: "Сглаживание (AA)", value: "FXAA", type: "select" },
-      { label: "Вертикальная синхронизация", value: "Вкл", type: "toggle" },
-      { label: "HDR-рендеринг", value: "Выкл", type: "toggle" },
-    ],
-  },
-  {
-    group: "Производительность",
-    icon: "Cpu",
-    items: [
-      { label: "Ядра процессора", value: "4 / 8", type: "select" },
-      { label: "Лимит FPS", value: "120", type: "select" },
-      { label: "Оптимизация Kirin 710F", value: "Вкл", type: "toggle" },
-      { label: "Тактирование GPU", value: "Авто", type: "select" },
-    ],
-  },
-  {
-    group: "Звук",
-    icon: "Volume2",
-    items: [
-      { label: "Аудиобуфер", value: "256 сэмпл", type: "select" },
-      { label: "Частота дискретизации", value: "48 000 Гц", type: "select" },
-      { label: "Spatial Audio", value: "Выкл", type: "toggle" },
-    ],
-  },
-];
-
-function FpsCounter({ target }: { target: number }) {
-  const [fps, setFps] = useState(target - 5);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setFps(target - 3 + Math.floor(Math.random() * 8));
-    }, 800);
-    return () => clearInterval(id);
-  }, [target]);
-  return (
-    <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: "var(--neon)", fontSize: "2rem", fontWeight: 700 }}>{fps}</span>
-  );
-}
-
-function SectionHome() {
-  return (
-    <div className="animate-slide-up space-y-5">
-      <div className="relative overflow-hidden rounded p-5" style={{ border: "1px solid var(--neon-border)", boxShadow: "0 0 20px rgba(0,255,136,0.15)" }}>
-        <div className="absolute inset-0 scan-line" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="status-dot" />
-            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>EMUCORE v1.0.0 — ACTIVE</span>
-          </div>
-          <h1 style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "2rem", fontWeight: 700, color: "var(--neon)", marginTop: "12px" }}>
-            EmuCore<span className="cursor-blink" style={{ color: "var(--text-dim)" }}>_</span>
-          </h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", lineHeight: 1.6 }}>
-            Профессиональный эмулятор ПК (.exe) и Xbox 360 для Android.<br />
-            Оптимизирован под Kirin 710F — Honor 9X.
-          </p>
-          <div className="flex gap-2 mt-4 flex-wrap">
-            {["KIRIN 710F", "ARM64", "VULKAN 1.1", "NO INTERNET", "ANDROID 9+"].map((t) => (
-              <span key={t} className="tag-chip">{t}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "10px" }}>// Быстрый запуск</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {QUICK_LAUNCHERS.map((item) => (
-            <div key={item.name} className="surface-card surface-card-hover rounded p-4 cursor-pointer">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-9 h-9 rounded flex items-center justify-center" style={{ background: "var(--neon-dim)", border: "1px solid var(--neon-border)" }}>
-                  <Icon name={item.icon} size={18} style={{ color: "var(--neon)" }} />
-                </div>
-                <span className="fps-badge">{item.fps} FPS</span>
-              </div>
-              <p style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)" }}>{item.name}</p>
-              <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>{item.desc}</p>
-              <div className="flex items-center gap-2 mt-3">
-                <div className={`status-dot ${item.status === "beta" ? "status-dot-yellow" : ""}`} />
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.1em" }}>
-                  {item.status === "beta" ? "BETA" : "ГОТОВ"}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "10px" }}>// Статус системы</p>
-        <div className="surface-card rounded p-4 space-y-3">
-          {[
-            { label: "Ядро эмуляции", val: 88 },
-            { label: "Совместимость DirectX", val: 74 },
-            { label: "Драйвер Vulkan", val: 96 },
-            { label: "Аудиосистема XAudio2", val: 91 },
-          ].map((row) => (
-            <div key={row.label}>
-              <div className="flex justify-between items-center mb-1">
-                <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{row.label}</span>
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px", color: "var(--neon)" }}>{row.val}%</span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${row.val}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SectionLibrary() {
-  const [filter, setFilter] = useState<"ALL" | "WIN32" | "XBOX360">("ALL");
-  const filtered = filter === "ALL" ? LIBRARY_GAMES : LIBRARY_GAMES.filter((g) => g.platform === filter);
-
-  return (
-    <div className="animate-slide-up space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// Библиотека игр</p>
-        <div className="flex gap-1">
-          {(["ALL", "WIN32", "XBOX360"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: "10px",
-                padding: "5px 12px",
-                borderRadius: "3px",
-                border: filter === f ? "1px solid var(--neon-border)" : "1px solid var(--surface-3)",
-                background: filter === f ? "var(--neon-dim)" : "transparent",
-                color: filter === f ? "var(--neon)" : "var(--text-secondary)",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        {filtered.map((game) => (
-          <div key={game.title} className="surface-card surface-card-hover rounded p-4 flex items-center gap-4 cursor-pointer">
-            <div className="w-10 h-10 rounded flex items-center justify-center flex-shrink-0" style={{ background: "var(--surface-3)" }}>
-              <Icon name={game.platform === "XBOX360" ? "Gamepad2" : "Monitor"} size={20} style={{ color: "var(--text-secondary)" }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)" }}>{game.title}</span>
-                <span className="tag-chip">{game.platform}</span>
-                <span className="tag-chip">{game.genre}</span>
-              </div>
-              <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>{game.size}</p>
-            </div>
-            <div className="text-right flex-shrink-0 space-y-1">
-              <div className="fps-badge">{game.fps} FPS</div>
-              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", textAlign: "right" }}>{game.compat}% compat</div>
-            </div>
-            <Icon name="ChevronRight" size={16} style={{ color: "var(--text-dim)", flexShrink: 0 }} />
-          </div>
-        ))}
-      </div>
-
-      <div
-        className="surface-card rounded p-4 flex items-center gap-3 cursor-pointer group"
-        style={{ border: "2px dashed var(--surface-3)", transition: "border-color 0.2s" }}
-        onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--neon-border)")}
-        onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--surface-3)")}
-      >
-        <div className="w-10 h-10 rounded flex items-center justify-center" style={{ background: "var(--surface-3)" }}>
-          <Icon name="FolderOpen" size={20} style={{ color: "var(--text-secondary)" }} />
-        </div>
-        <div>
-          <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>Добавить игру / приложение</p>
-          <p style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Поддерживаются .exe, .xex, .iso, .img</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function SectionControls() {
   const [activeProfile, setActiveProfile] = useState(0);
   return (
     <div className="animate-slide-up space-y-4">
-      <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// Профили управления</p>
-
+      <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// Профили управления</p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {CONTROL_PROFILES.map((p, i) => (
-          <div
-            key={p.name}
-            onClick={() => setActiveProfile(i)}
-            className="surface-card rounded p-4 cursor-pointer"
-            style={{
-              border: activeProfile === i ? "1px solid var(--neon-border)" : "1px solid var(--surface-3)",
-              boxShadow: activeProfile === i ? "0 0 12px rgba(0,255,136,0.1)" : "none",
-              transition: "all 0.2s",
-            }}
-          >
+          <div key={p.name} onClick={() => setActiveProfile(i)} className="surface-card rounded p-4 cursor-pointer"
+            style={{ border: activeProfile === i ? "1px solid var(--neon-border)" : "1px solid var(--surface-3)", boxShadow: activeProfile === i ? "0 0 12px rgba(0,255,136,0.1)" : "none", transition: "all 0.2s" }}>
             <div className="flex items-start justify-between">
               <div>
-                <p style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)" }}>{p.name}</p>
-                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", marginTop: "2px", letterSpacing: "0.08em" }}>{p.type}</p>
+                <p style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)", fontFamily: SANS }}>{p.name}</p>
+                <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", marginTop: "2px" }}>{p.type}</p>
               </div>
-              <div style={{
-                width: 20, height: 20, borderRadius: "50%",
-                border: activeProfile === i ? "2px solid var(--neon)" : "2px solid var(--text-dim)",
-                background: activeProfile === i ? "var(--neon-dim)" : "transparent",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
+              <div style={{ width: 20, height: 20, borderRadius: "50%", border: activeProfile === i ? "2px solid var(--neon)" : "2px solid var(--text-dim)", background: activeProfile === i ? "var(--neon-dim)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {activeProfile === i && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--neon)" }} />}
               </div>
             </div>
             <div className="flex items-center gap-2 mt-3">
               <Icon name="Keyboard" size={13} style={{ color: "var(--text-secondary)" }} />
-              <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{p.keys} кнопок назначено</span>
+              <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontFamily: SANS }}>{p.keys} кнопок назначено</span>
             </div>
           </div>
         ))}
       </div>
 
       <div className="surface-card rounded p-4">
-        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "14px" }}>// Раскладка кнопок Xbox 360</p>
+        <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "14px" }}>// Раскладка Xbox 360</p>
         <div className="grid grid-cols-4 gap-2">
           {[
-            { key: "A", color: "#4ade80" },
-            { key: "B", color: "#f87171" },
-            { key: "X", color: "#60a5fa" },
-            { key: "Y", color: "#facc15" },
-            { key: "LB", color: "#999" },
-            { key: "RB", color: "#999" },
-            { key: "LT", color: "#666" },
-            { key: "RT", color: "#666" },
-            { key: "START", color: "#888" },
-            { key: "BACK", color: "#888" },
-            { key: "LS", color: "#555" },
-            { key: "RS", color: "#555" },
+            { key: "A", color: "#4ade80" }, { key: "B", color: "#f87171" },
+            { key: "X", color: "#60a5fa" }, { key: "Y", color: "#facc15" },
+            { key: "LB", color: "#999" },   { key: "RB", color: "#999" },
+            { key: "LT", color: "#666" },   { key: "RT", color: "#666" },
+            { key: "START", color: "#888" }, { key: "BACK", color: "#888" },
+            { key: "LS", color: "#555" },   { key: "RS", color: "#555" },
           ].map((btn) => (
-            <button
-              key={btn.key}
-              style={{
-                borderRadius: "3px",
-                border: "1px solid var(--surface-3)",
-                padding: "8px 4px",
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: "11px",
-                fontWeight: 700,
-                color: btn.color,
-                background: "transparent",
-                cursor: "pointer",
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = btn.color; e.currentTarget.style.background = `${btn.color}15`; }}
+            <button key={btn.key}
+              style={{ borderRadius: "3px", border: "1px solid var(--surface-3)", padding: "8px 4px", fontFamily: MONO, fontSize: "11px", fontWeight: 700, color: btn.color, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = btn.color; e.currentTarget.style.background = `${btn.color}18`; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--surface-3)"; e.currentTarget.style.background = "transparent"; }}
-            >
-              {btn.key}
-            </button>
+            >{btn.key}</button>
           ))}
         </div>
-        <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "10px" }}>Нажмите кнопку для переназначения</p>
       </div>
     </div>
   );
 }
 
+const SETTINGS_GROUPS = [
+  { group: "Производительность", icon: "Cpu", items: [
+    { label: "Лимит FPS", value: "120", type: "select" },
+    { label: "Оптимизация Kirin 710F", value: "Вкл", type: "toggle" },
+    { label: "Режим энергосбережения", value: "Выкл", type: "toggle" },
+  ]},
+  { group: "Графика", icon: "Layers", items: [
+    { label: "Разрешение", value: "1080p", type: "select" },
+    { label: "Сглаживание", value: "FXAA", type: "select" },
+    { label: "VSync", value: "Вкл", type: "toggle" },
+  ]},
+  { group: "Звук", icon: "Volume2", items: [
+    { label: "Аудиобуфер", value: "256", type: "select" },
+    { label: "Spatial Audio", value: "Выкл", type: "toggle" },
+  ]},
+];
+
 function SectionSettings() {
   const [toggles, setToggles] = useState<Record<string, boolean>>({
-    "Вертикальная синхронизация": true,
-    "HDR-рендеринг": false,
-    "Оптимизация Kirin 710F": true,
-    "Spatial Audio": false,
+    "Оптимизация Kirin 710F": true, "VSync": true,
+    "Режим энергосбережения": false, "Spatial Audio": false,
   });
-
   return (
     <div className="animate-slide-up space-y-4">
-      <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// Настройки эмуляции</p>
-
+      <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// Настройки</p>
       {SETTINGS_GROUPS.map((group) => (
         <div key={group.group} className="surface-card rounded overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--surface-3)" }}>
             <Icon name={group.icon} size={14} style={{ color: "var(--neon)" }} />
-            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", letterSpacing: "0.12em", color: "var(--text-secondary)" }}>{group.group.toUpperCase()}</span>
+            <span style={{ fontFamily: MONO, fontSize: "10px", letterSpacing: "0.12em", color: "var(--text-secondary)" }}>{group.group.toUpperCase()}</span>
           </div>
-          <div>
-            {group.items.map((item, idx) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between px-4 py-3"
-                style={{ borderBottom: idx < group.items.length - 1 ? "1px solid var(--surface-3)" : "none" }}
-              >
-                <span style={{ fontSize: "13px", color: "var(--text-primary)" }}>{item.label}</span>
-                {item.type === "toggle" ? (
-                  <button
-                    onClick={() => setToggles((prev) => ({ ...prev, [item.label]: !prev[item.label] }))}
-                    style={{
-                      width: 42, height: 24, borderRadius: 12,
-                      border: toggles[item.label] ? "1px solid var(--neon-border)" : "1px solid var(--text-dim)",
-                      background: toggles[item.label] ? "var(--neon-dim)" : "transparent",
-                      position: "relative", cursor: "pointer", transition: "all 0.2s",
-                    }}
-                  >
-                    <div style={{
-                      position: "absolute", top: 2,
-                      left: toggles[item.label] ? 20 : 2,
-                      width: 18, height: 18, borderRadius: "50%",
-                      background: toggles[item.label] ? "var(--neon)" : "var(--text-dim)",
-                      transition: "all 0.2s",
-                    }} />
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px", color: "var(--neon)" }}>{item.value}</span>
-                    <Icon name="ChevronDown" size={12} style={{ color: "var(--text-dim)" }} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          {group.items.map((item, idx) => (
+            <div key={item.label} className="flex items-center justify-between px-4 py-3"
+              style={{ borderBottom: idx < group.items.length - 1 ? "1px solid var(--surface-3)" : "none" }}>
+              <span style={{ fontSize: "13px", color: "var(--text-primary)", fontFamily: SANS }}>{item.label}</span>
+              {item.type === "toggle" ? (
+                <button onClick={() => setToggles((p) => ({ ...p, [item.label]: !p[item.label] }))}
+                  style={{ width: 42, height: 24, borderRadius: 12, border: toggles[item.label] ? "1px solid var(--neon-border)" : "1px solid var(--text-dim)", background: toggles[item.label] ? "var(--neon-dim)" : "transparent", position: "relative", cursor: "pointer", transition: "all 0.2s" }}>
+                  <div style={{ position: "absolute", top: 2, left: toggles[item.label] ? 20 : 2, width: 18, height: 18, borderRadius: "50%", background: toggles[item.label] ? "var(--neon)" : "var(--text-dim)", transition: "all 0.2s" }} />
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <span style={{ fontFamily: MONO, fontSize: "11px", color: "var(--neon)" }}>{item.value}</span>
+                  <Icon name="ChevronDown" size={12} style={{ color: "var(--text-dim)" }} />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       ))}
     </div>
@@ -371,58 +362,47 @@ function SectionSettings() {
 function SectionStats() {
   return (
     <div className="animate-slide-up space-y-4">
-      <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// Мониторинг производительности</p>
-
-      <div className="surface-card rounded p-5" style={{ border: "1px solid var(--neon-border)", boxShadow: "0 0 20px rgba(0,255,136,0.12)" }}>
-        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "4px" }}>ТЕКУЩИЙ FPS</p>
+      <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// Мониторинг производительности</p>
+      <div className="surface-card rounded p-5" style={{ border: "1px solid var(--neon-border)", boxShadow: "0 0 20px rgba(0,255,136,0.1)" }}>
+        <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "4px" }}>ТЕКУЩИЙ FPS</p>
         <div className="flex items-end gap-3">
           <FpsCounter target={72} />
-          <span style={{ color: "var(--text-secondary)", fontSize: "13px", marginBottom: "4px", fontFamily: "'IBM Plex Mono', monospace" }}>/ 120 max</span>
+          <span style={{ color: "var(--text-secondary)", fontSize: "13px", marginBottom: "4px", fontFamily: MONO }}>/ 120 max</span>
         </div>
-        <div className="progress-bar mt-3">
-          <div className="progress-fill" style={{ width: "60%" }} />
-        </div>
+        <div className="progress-bar mt-3"><div className="progress-fill" style={{ width: "60%" }} /></div>
       </div>
-
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: "Загрузка CPU", value: "34%", icon: "Cpu", sub: "Kirin 710F × 4 ядра" },
-          { label: "Загрузка GPU", value: "61%", icon: "Layers", sub: "Mali-G51 MP4" },
-          { label: "Использование RAM", value: "2.1 GB", icon: "Database", sub: "из 6 GB" },
-          { label: "Температура", value: "48°C", icon: "Thermometer", sub: "Норма < 65°C" },
+          { label: "CPU", value: "34%", icon: "Cpu", sub: "Kirin 710F" },
+          { label: "GPU", value: "61%", icon: "Layers", sub: "Mali-G51 MP4" },
+          { label: "RAM", value: "2.1 GB", icon: "Database", sub: "из 6 GB" },
+          { label: "Темп.", value: "48°C", icon: "Thermometer", sub: "Норма" },
         ].map((s) => (
           <div key={s.label} className="surface-card rounded p-4">
             <div className="flex items-center gap-2 mb-2">
               <Icon name={s.icon} size={13} style={{ color: "var(--text-secondary)" }} />
-              <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{s.label}</span>
+              <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontFamily: SANS }}>{s.label}</span>
             </div>
-            <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "22px", fontWeight: 700, color: "var(--neon)" }}>{s.value}</p>
-            <p style={{ fontSize: "10px", color: "var(--text-dim)", marginTop: "2px" }}>{s.sub}</p>
+            <p style={{ fontFamily: MONO, fontSize: "22px", fontWeight: 700, color: "var(--neon)" }}>{s.value}</p>
+            <p style={{ fontSize: "10px", color: "var(--text-dim)", marginTop: "2px", fontFamily: SANS }}>{s.sub}</p>
           </div>
         ))}
       </div>
-
       <div className="surface-card rounded p-4">
-        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "12px" }}>// История сессий</p>
-        <div className="space-y-2">
-          {[
-            { game: "Halo 3", duration: "2ч 14м", avgFps: 58, date: "Сегодня" },
-            { game: "GTA IV", duration: "45м", avgFps: 42, date: "Вчера" },
-            { game: "Crysis 2", duration: "1ч 30м", avgFps: 38, date: "31 мая" },
-          ].map((row, i, arr) => (
-            <div
-              key={row.game + row.date}
-              className="flex items-center justify-between py-2"
-              style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--surface-3)" : "none" }}
-            >
-              <div>
-                <p style={{ fontSize: "13px", color: "var(--text-primary)" }}>{row.game}</p>
-                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-dim)" }}>{row.date} · {row.duration}</p>
-              </div>
-              <span className="fps-badge">{row.avgFps} avg</span>
+        <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "12px" }}>// История сессий</p>
+        {[
+          { game: "God of War (PSP)", emu: "PPSSPP", duration: "2ч 14м", avgFps: 60, date: "Сегодня" },
+          { game: "GTA San Andreas", emu: "Winlator", duration: "45м", avgFps: 68, date: "Вчера" },
+          { game: "Mario Kart Wii", emu: "Dolphin", duration: "1ч 10м", avgFps: 58, date: "31 мая" },
+        ].map((row, i, arr) => (
+          <div key={row.game} className="flex items-center justify-between py-2" style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--surface-3)" : "none" }}>
+            <div>
+              <p style={{ fontSize: "13px", color: "var(--text-primary)", fontFamily: SANS }}>{row.game}</p>
+              <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-dim)" }}>{row.date} · {row.duration} · {row.emu}</p>
             </div>
-          ))}
-        </div>
+            <span className="fps-badge">{row.avgFps} avg</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -431,66 +411,51 @@ function SectionStats() {
 function SectionAbout() {
   return (
     <div className="animate-slide-up space-y-4">
-      <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// О системе</p>
+      <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em" }}>// О системе</p>
 
-      <div className="surface-card rounded p-5" style={{ border: "1px solid var(--neon-border)", boxShadow: "0 0 20px rgba(0,255,136,0.1)" }}>
+      <div className="surface-card rounded p-5" style={{ border: "1px solid var(--neon-border)", boxShadow: "0 0 20px rgba(0,255,136,0.08)" }}>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded flex items-center justify-center" style={{ border: "1px solid var(--neon-border)", background: "var(--neon-dim)" }}>
             <Icon name="Cpu" size={24} style={{ color: "var(--neon)" }} />
           </div>
           <div>
-            <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: "var(--neon)", fontSize: "20px" }}>EmuCore</p>
-            <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)" }}>Version 1.0.0-alpha · Build 2026.06.01</p>
+            <p style={{ fontFamily: MONO, fontWeight: 700, color: "var(--neon)", fontSize: "18px" }}>EmuCore Launcher</p>
+            <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)" }}>v1.0.0 · Полностью офлайн</p>
           </div>
         </div>
-        <div className="space-y-0">
-          {[
-            { label: "Платформа", value: "Android 9+ (API 28+)" },
-            { label: "Целевой чип", value: "HiSilicon Kirin 710F" },
-            { label: "Архитектура", value: "ARM64-v8a" },
-            { label: "Рендер", value: "Vulkan 1.1 / OpenGL ES 3.2" },
-            { label: "Аудио", value: "XAudio2 эмуляция" },
-            { label: "DirectX", value: "DirectX 9 / 11 (трансляция)" },
-          ].map((row, i, arr) => (
-            <div
-              key={row.label}
-              className="flex justify-between py-2"
-              style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--surface-3)" : "none" }}
-            >
-              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{row.label}</span>
-              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px", color: "var(--text-primary)" }}>{row.value}</span>
-            </div>
-          ))}
-        </div>
+        {[
+          { label: "Платформа", value: "Android 9+" },
+          { label: "Целевой чип", value: "Kirin 710F" },
+          { label: "Интернет", value: "Не требуется" },
+          { label: "Реклама", value: "Отсутствует" },
+        ].map((row, i, arr) => (
+          <div key={row.label} className="flex justify-between py-2" style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--surface-3)" : "none" }}>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontFamily: SANS }}>{row.label}</span>
+            <span style={{ fontFamily: MONO, fontSize: "11px", color: "var(--text-primary)" }}>{row.value}</span>
+          </div>
+        ))}
       </div>
 
       <div className="surface-card rounded p-4">
-        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "10px" }}>// Поддерживаемые форматы</p>
-        <div className="flex flex-wrap gap-2">
-          {[".exe", ".xex", ".iso", ".img", ".xiso", ".dll", ".cab", ".msi"].map((ext) => (
-            <span key={ext} className="tag-chip">{ext}</span>
-          ))}
-        </div>
-      </div>
-
-      <div className="surface-card rounded p-4">
-        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "12px" }}>// Техподдержка</p>
-        <div className="space-y-2">
-          {[
-            { icon: "MessageSquare", label: "Telegram-сообщество", sub: "@emucore_support" },
-            { icon: "Bug", label: "Сообщить об ошибке", sub: "Встроенный баг-трекер" },
-            { icon: "BookOpen", label: "Документация", sub: "Оффлайн-справка v1.0" },
-          ].map((item) => (
-            <div key={item.label} className="surface-card-hover flex items-center gap-3 rounded p-2 cursor-pointer">
-              <div className="w-8 h-8 rounded flex items-center justify-center" style={{ background: "var(--surface-3)" }}>
-                <Icon name={item.icon} size={15} style={{ color: "var(--text-secondary)" }} />
+        <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.15em", marginBottom: "12px" }}>// Как установить эмулятор</p>
+        <div className="space-y-3">
+          {EMULATORS.map((emu) => (
+            <div key={emu.id} className="flex items-center gap-3 rounded p-2 surface-card-hover cursor-pointer">
+              <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0" style={{ background: `${emu.color}18`, border: `1px solid ${emu.color}44` }}>
+                <Icon name={emu.icon} size={15} style={{ color: emu.color }} />
               </div>
-              <div>
-                <p style={{ fontSize: "13px", color: "var(--text-primary)" }}>{item.label}</p>
-                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-dim)" }}>{item.sub}</p>
+              <div className="flex-1">
+                <p style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: 600, fontFamily: SANS }}>{emu.name}</p>
+                <p style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-dim)" }}>{emu.pkg}</p>
               </div>
+              <div className={`status-dot ${emu.installed ? "" : "status-dot-red"}`} />
             </div>
           ))}
+        </div>
+        <div className="mt-3 p-3 rounded" style={{ background: "var(--surface-3)" }}>
+          <p style={{ fontSize: "11px", color: "var(--text-secondary)", lineHeight: 1.5, fontFamily: SANS }}>
+            Скачайте APK с официального сайта эмулятора и установите вручную. Интернет нужен только для первичной установки.
+          </p>
         </div>
       </div>
     </div>
@@ -510,62 +475,31 @@ export default function Index() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--surface)", fontFamily: "'Golos Text', sans-serif" }}>
-      {/* Top bar */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 50,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 16px", height: 48,
-        borderBottom: "1px solid var(--surface-3)",
-        background: "rgba(13,13,13,0.96)", backdropFilter: "blur(8px)",
-      }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--surface)", fontFamily: SANS }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 48, borderBottom: "1px solid var(--surface-3)", background: "rgba(13,13,13,0.96)", backdropFilter: "blur(8px)" }}>
         <div className="flex items-center gap-2">
           <div className="status-dot" />
-          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "14px", fontWeight: 700, color: "var(--neon)", letterSpacing: "-0.02em" }}>EmuCore</span>
-          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-dim)" }}>v1.0</span>
+          <span style={{ fontFamily: MONO, fontSize: "14px", fontWeight: 700, color: "var(--neon)" }}>EmuCore</span>
+          <span style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-dim)" }}>OFFLINE</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="fps-badge">72 FPS</span>
-          <div className="flex items-center gap-1.5">
-            <Icon name="WifiOff" size={13} style={{ color: "var(--text-dim)" }} />
-            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", color: "var(--text-dim)" }}>OFFLINE</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <Icon name="WifiOff" size={13} style={{ color: "var(--text-dim)" }} />
+          <span style={{ fontFamily: MONO, fontSize: "10px", color: "var(--text-dim)" }}>NO NET</span>
         </div>
       </header>
 
-      {/* Content */}
       <main style={{ flex: 1, padding: "20px 16px 16px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
         {sections[active]}
       </main>
 
-      {/* Bottom navigation */}
-      <nav style={{
-        position: "sticky", bottom: 0, zIndex: 50,
-        borderTop: "1px solid var(--surface-3)",
-        background: "rgba(13,13,13,0.97)", backdropFilter: "blur(10px)",
-      }}>
+      <nav style={{ position: "sticky", bottom: 0, zIndex: 50, borderTop: "1px solid var(--surface-3)", background: "rgba(13,13,13,0.97)", backdropFilter: "blur(10px)" }}>
         <div style={{ display: "flex", alignItems: "center", maxWidth: 640, margin: "0 auto" }}>
           {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActive(item.id)}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                padding: "10px 4px", flex: 1,
-                color: active === item.id ? "var(--neon)" : "var(--text-dim)",
-                background: "transparent", border: "none", cursor: "pointer",
-                transition: "color 0.2s",
-                position: "relative",
-              }}
-            >
+            <button key={item.id} onClick={() => setActive(item.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "10px 4px", flex: 1, color: active === item.id ? "var(--neon)" : "var(--text-dim)", background: "transparent", border: "none", cursor: "pointer", transition: "color 0.2s", position: "relative" }}>
               <Icon name={item.icon} size={19} />
-              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "8px", letterSpacing: "0.08em" }}>{item.label.toUpperCase()}</span>
+              <span style={{ fontFamily: MONO, fontSize: "8px", letterSpacing: "0.06em" }}>{item.label.toUpperCase()}</span>
               {active === item.id && (
-                <div style={{
-                  position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)",
-                  width: 28, height: 2, background: "var(--neon)",
-                  borderRadius: "1px 1px 0 0", boxShadow: "0 0 8px var(--neon)",
-                }} />
+                <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", width: 28, height: 2, background: "var(--neon)", borderRadius: "1px 1px 0 0", boxShadow: "0 0 8px var(--neon)" }} />
               )}
             </button>
           ))}

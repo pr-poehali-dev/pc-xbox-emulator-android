@@ -54,7 +54,12 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Golos Text", sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
     background-color: var(--surface);
     color: var(--text-primary);
     overflow-x: hidden;
@@ -74,7 +79,7 @@
 
 @layer utilities {
   .font-mono-emu {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: "Courier New", Courier, monospace;
   }
 
   .neon-text {
@@ -163,7 +168,7 @@
   }
 
   .fps-badge {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: "Courier New", Courier, monospace;
     font-size: 11px;
     font-weight: 600;
     padding: 2px 8px;
@@ -174,7 +179,7 @@
   }
 
   .tag-chip {
-    font-family: "IBM Plex Mono", monospace;
+    font-family: "Courier New", Courier, monospace;
     font-size: 10px;
     font-weight: 500;
     padding: 2px 7px;
